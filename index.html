@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuProfe20 Lab - Física: Calorimetría</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        
+        body { margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100dvh; user-select: none; background-color: #450a0a; }
+        .font-fun { font-family: 'Nunito', sans-serif; }
+        
+        @keyframes floatUp { 
+            0% { transform: translateY(105vh) rotate(0deg); } 
+            100% { transform: translateY(-105vh) rotate(360deg); } 
+        }
+        @keyframes slideInRight { 
+            0% { opacity: 0; transform: translateX(15px); } 
+            100% { opacity: 1; transform: translateX(0); } 
+        }
+        @keyframes jellyPop {
+            0% { transform: scale3d(.3, .3, .3); opacity: 0; }
+            20% { transform: scale3d(1.18, 1.18, 1.18); }
+            40% { transform: scale3d(.92, .92, .92); }
+            60% { transform: scale3d(1.06, 1.06, 1.06); opacity: 1; }
+            80% { transform: scale3d(.97, .97, .97); }
+            100% { transform: scale3d(1, 1, 1); opacity: 1; }
+        }
+        @keyframes robotFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.95); }
+        }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .animate-floatUp { animation: floatUp linear infinite; }
+        .animate-slideInRight { animation: slideInRight 0.3s ease-out forwards; }
+        .animate-jellyPop { animation: jellyPop 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-robotFloat { animation: robotFloat 3s ease-in-out infinite; }
+        .animate-flicker { animation: flicker 0.5s ease-in-out infinite; }
+
+        .katex { font-weight: 900 !important; }
+        .katex-display { margin: 0 !important; padding: 0 !important; }
+        
+        .math-card .katex { font-size: clamp(0.9rem, 1.8vw, 1.25rem) !important; color: #450a0a !important; }
+        .math-enunciado .katex { font-size: clamp(0.9rem, 1.8vw, 1.4rem) !important; color: #ffffff !important; }
+        .math-current .katex { font-size: clamp(1rem, 2.5vw, 2.2rem) !important; color: #450a0a !important; }
+        .math-history .katex { font-size: clamp(0.9rem, 2vw, 1.6rem) !important; color: #7f1d1d !important; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, memo } = React;
+
+        // SVG Icons
+        const Icon = ({ paths, className = "", size = 24, fill = "none", strokeWidth = "2.5" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{__html: paths}} />
+        );
+        const VolumeX = (p) => <Icon {...p} paths='<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>' />;
+        const Volume2 = (p) => <Icon {...p} paths='<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>' />;
+        const FlameIcon = (p) => <Icon {...p} paths='<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>' />;
+        const Sparkles = (p) => <Icon {...p} paths='<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 3v4"/><path d="M17 5h4"/>' />;
+        const Home = (p) => <Icon {...p} paths='<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' />;
+        const ChevronLeft = (p) => <Icon {...p} paths='<polyline points="15 18 9 12 15 6"/>' />;
+        const ChevronRight = (p) => <Icon {...p} paths='<polyline points="9 18 15 12 9 6"/>' />;
+
+        // Audio System
+        const AudioController = {
+            ctx: null, muted: false,
+            init: function() {
+                if (this.ctx) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) this.ctx = new AudioContext();
+            },
+            play: function(type) {
+                if (this.muted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                const now = this.ctx.currentTime;
+                
+                if (type === 'pop') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(700, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'success') {
+                    osc.disconnect();
+                    const notes = [440, 554.37, 659.25, 880];
+                    notes.forEach((freq, i) => {
+                        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+                        o.type = 'triangle'; o.frequency.value = freq;
+                        o.connect(g); g.connect(this.ctx.destination);
+                        const startTime = now + (i * 0.08);
+                        g.gain.setValueAtTime(0, startTime); g.gain.linearRampToValueAtTime(0.2, startTime + 0.04); g.gain.linearRampToValueAtTime(0, startTime + 0.4);
+                        o.start(startTime); o.stop(startTime + 0.4);
+                    });
+                }
+            },
+            toggleMute: function() { this.muted = !this.muted; return this.muted; }
+        };
+
+        const MathDisplay = memo(({ latex, className = "", inline = false }) => {
+            const containerRef = useRef(null);
+            useEffect(() => {
+                if (containerRef.current && window.katex) {
+                    try {
+                        window.katex.render(latex, containerRef.current, { displayMode: !inline, throwOnError: false });
+                    } catch (e) { containerRef.current.innerText = latex; }
+                }
+            }, [latex, inline]);
+            return inline ? <span ref={containerRef} className={`inline-block align-middle ${className}`} /> : <div className={`relative w-full flex justify-center ${className}`}><div ref={containerRef} className="w-full text-center" /></div>;
+        });
+
+        // Dynamic Calorimetry Graphic Component
+        const CalorimetryGraphic = memo(({ mode = "heating", elements = [], flame = false, eqTemp = null }) => {
+            // elements format: [{ type: 'block', name: 'Fe', temp: 10, color: '#94a3b8' }, { type: 'liquid', name: 'H2O', temp: 20 }]
+            
+            const Thermometer = ({ temp, color = "#ef4444", label, maxTemp = 150 }) => {
+                const fillPercent = Math.max(8, Math.min(100, (temp / maxTemp) * 100));
+                return (
+                    <div className="flex flex-col items-center mx-2 drop-shadow-md z-10">
+                        <span className="text-xs font-black mb-1 bg-white/80 px-1 rounded shadow-sm text-slate-800">{temp}°C</span>
+                        <div className="w-4 h-24 sm:h-32 bg-white border-2 border-slate-400 rounded-full relative overflow-hidden flex items-end shadow-inner">
+                            <div className="w-full transition-all duration-700 ease-in-out" style={{ height: `${fillPercent}%`, backgroundColor: color }}></div>
+                            {/* Marcadores */}
+                            <div className="absolute top-1/4 w-full h-[1px] bg-slate-300"></div>
+                            <div className="absolute top-2/4 w-full h-[1px] bg-slate-300"></div>
+                            <div className="absolute top-3/4 w-full h-[1px] bg-slate-300"></div>
+                        </div>
+                        <div className={`w-7 h-7 rounded-full -mt-2 border-2 border-slate-400 z-10 transition-colors duration-700 shadow-md`} style={{ backgroundColor: color }}></div>
+                        <span className="text-[11px] font-black mt-1 text-center bg-slate-800 text-white px-2 py-0.5 rounded-md">{label}</span>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="relative w-full max-w-sm h-52 sm:h-64 mx-auto bg-amber-50 rounded-2xl shadow-inner border-[4px] border-amber-200 overflow-hidden flex items-end justify-center pb-4">
+                    {/* Background Grid */}
+                    <div className="absolute inset-0 opacity-[0.15] bg-[linear-gradient(to_right,#f59e0b_1px,transparent_1px),linear-gradient(to_bottom,#f59e0b_1px,transparent_1px)] bg-[size:15px_15px]"></div>
+                    
+                    {mode === 'heating' && (
+                        <div className="relative flex items-end w-full justify-center px-4">
+                            <div className="flex flex-col items-center mr-6 z-10 relative">
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-400 border-4 border-slate-600 rounded-lg shadow-xl flex items-center justify-center font-black text-white text-xl z-20" style={{ backgroundColor: elements[0]?.color || '#94a3b8' }}>
+                                    {elements[0]?.name}
+                                </div>
+                                <div className="w-24 h-2 bg-slate-800 rounded-full mt-1 z-10"></div>
+                                <div className="w-4 h-12 bg-slate-700"></div>
+                                {/* Fuego */}
+                                <div className={`absolute bottom-0 mb-2 transition-opacity duration-500 ${flame ? 'opacity-100 animate-flicker' : 'opacity-0'}`}>
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="#ef4444" className="drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]"><path d="M12 2C12 2 5 8.16 5 14a7 7 0 0 0 14 0c0-5.84-7-12-7-12zm-1 14.5v-3h2v3h-2zm0-4.5v-4h2v4h-2z" fill="#f59e0b"/></svg>
+                                </div>
+                            </div>
+                            <Thermometer temp={elements[0]?.temp || 0} label="T. Cuerpo" maxTemp={150} color={elements[0]?.temp > 50 ? '#ef4444' : '#3b82f6'} />
+                        </div>
+                    )}
+
+                    {mode === 'mixing' && (
+                        <div className="relative flex items-end w-full justify-center px-2">
+                            {/* Beaker con líquido y bloque */}
+                            <div className="relative w-28 h-32 sm:w-32 sm:h-36 border-4 border-t-0 border-slate-300 rounded-b-xl flex items-end overflow-hidden mr-4 shadow-lg bg-white/30 z-10">
+                                {/* Liquido */}
+                                <div className="w-full transition-all duration-700 flex items-end justify-center pb-2 opacity-80" style={{ height: '75%', backgroundColor: elements[0]?.color || '#3b82f6' }}>
+                                    {/* Bloque sumergido */}
+                                    {elements[1] && (
+                                        <div className="w-12 h-12 bg-slate-500 border-2 border-slate-700 rounded shadow-md flex items-center justify-center text-white font-bold text-xs" style={{ backgroundColor: elements[1]?.color || '#94a3b8' }}>
+                                            {elements[1]?.name}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* Termometros */}
+                            <div className="flex z-10">
+                                {elements.map((el, i) => (
+                                    <Thermometer key={i} temp={el.temp} label={el.name} maxTemp={150} color={el.temp >= (eqTemp || 50) ? '#ef4444' : '#3b82f6'} />
+                                ))}
+                            </div>
+
+                            {/* Linea de equilibrio si existe */}
+                            {eqTemp && (
+                                <div className="absolute left-0 right-0 border-t-2 border-dashed border-green-600 z-0 opacity-50 transition-all duration-700 flex items-center justify-end pr-2" style={{ bottom: `${(eqTemp/150)*100 + 10}%` }}>
+                                    <span className="text-[10px] font-bold text-green-700 bg-white/80 px-1 rounded -mt-4">Eq</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {mode === 'alloy' && (
+                        <div className="relative flex flex-col items-center w-full justify-center pb-4">
+                            <div className="flex gap-2 mb-4 z-10">
+                                {elements.map((el, i) => (
+                                    <div key={i} className="w-14 h-14 sm:w-16 sm:h-16 rounded shadow-lg border-2 border-slate-600 flex flex-col items-center justify-center font-bold text-white text-xs" style={{ backgroundColor: el.color }}>
+                                        <span>{el.name}</span>
+                                        <span className="text-[10px] opacity-80">{el.mass}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="w-full max-w-[80%] h-8 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-full flex items-center justify-center text-white font-black shadow-inner border-2 border-orange-700 z-10 animate-pulse">
+                                Aleación Total
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        });
+
+        // 15 Exercises DB for Calorimetry
+        const EXERCISES = [
+            {
+                id: 1, title: "Ejercicio 1", subtitle: "Calentando Hierro",
+                badge: "bg-red-600", grad: "from-red-700/40 to-orange-600/40 border-red-500",
+                enunciado: () => <span>¿Cuánto calor (en cal) será necesario para elevar la temperatura de 50g de hierro de <MathDisplay inline latex="10^\circ\text{C}" /> a <MathDisplay inline latex="110^\circ\text{C}" />? (<MathDisplay inline latex="Ce_{Fe} = 0.12 \text{ cal/g}^\circ\text{C}" />)</span>,
+                steps: [
+                    { latex: String.raw`m = 50\text{g}, \quad T_i = 10^\circ\text{C}`, text: "Datos Iniciales", speech: "Tenemos un bloque de hierro a temperatura ambiente (10°C). Prepararemos el fuego.", graphicProps: { mode: 'heating', elements: [{ name: 'Fe', temp: 10, color: '#94a3b8' }], flame: false } },
+                    { latex: String.raw`Q = Ce \cdot m \cdot \Delta T`, text: "Fórmula del Calor", speech: "Para hallar el calor, multiplicamos el calor específico, la masa y la variación de temperatura.", graphicProps: { mode: 'heating', elements: [{ name: 'Fe', temp: 10, color: '#94a3b8' }], flame: true } },
+                    { latex: String.raw`Q = 0.12 \cdot 50 \cdot (110 - 10)`, text: "Reemplazando", speech: "El hierro eleva su temperatura hasta los 110°C, por lo que la variación es de 100 grados.", graphicProps: { mode: 'heating', elements: [{ name: 'Fe', temp: 110, color: '#ef4444' }], flame: true } },
+                    { latex: String.raw`Q = 6 \cdot 100 = \mathbf{600 \text{ cal}}`, text: "Resultado", speech: "Multiplicando todo, descubrimos que se necesitan 600 calorías. ¡Fácil para empezar!", graphicProps: { mode: 'heating', elements: [{ name: 'Fe', temp: 110, color: '#ef4444' }], flame: false } }
+                ]
+            },
+            {
+                id: 2, title: "Ejercicio 2", subtitle: "Calentando Aluminio",
+                badge: "bg-orange-600", grad: "from-orange-700/40 to-amber-600/40 border-orange-500",
+                enunciado: () => <span>¿Cuánto calor (en cal) será necesario para elevar la temperatura de 100g de aluminio de <MathDisplay inline latex="10^\circ\text{C}" /> a <MathDisplay inline latex="60^\circ\text{C}" />? (<MathDisplay inline latex="Ce_{Al} = 0.3 \text{ cal/g}^\circ\text{C}" />)</span>,
+                steps: [
+                    { latex: String.raw`m = 100\text{g}, \quad \Delta T = (60 - 10) = 50^\circ\text{C}`, text: "Datos", speech: "Ahora tenemos aluminio, el cual tiene un mayor calor específico que el hierro.", graphicProps: { mode: 'heating', elements: [{ name: 'Al', temp: 10, color: '#cbd5e1' }], flame: false } },
+                    { latex: String.raw`Q = Ce \cdot m \cdot \Delta T`, text: "Aplicando Fórmula", speech: "Encendemos el calor para iniciar la transferencia de energía.", graphicProps: { mode: 'heating', elements: [{ name: 'Al', temp: 10, color: '#cbd5e1' }], flame: true } },
+                    { latex: String.raw`Q = 0.3 \cdot 100 \cdot 50`, text: "Reemplazando", speech: "Sustituimos el Ce del aluminio (0.3), la masa (100g) y la variación térmica (50).", graphicProps: { mode: 'heating', elements: [{ name: 'Al', temp: 60, color: '#f87171' }], flame: true } },
+                    { latex: String.raw`Q = 30 \cdot 50 = \mathbf{1500 \text{ cal}}`, text: "Solución", speech: "Se requieren 1500 calorías para lograr ese incremento de temperatura.", graphicProps: { mode: 'heating', elements: [{ name: 'Al', temp: 60, color: '#f87171' }], flame: false } }
+                ]
+            },
+            {
+                id: 3, title: "Ejercicio 3", subtitle: "Calentando Cobre",
+                badge: "bg-amber-600", grad: "from-amber-700/40 to-yellow-600/40 border-amber-500",
+                enunciado: () => <span>¿Cuánto calor (en cal) será necesario para elevar 500g de cobre de <MathDisplay inline latex="20^\circ\text{C}" /> a <MathDisplay inline latex="90^\circ\text{C}" />? (<MathDisplay inline latex="Ce_{Cu} = 0.1 \text{ cal/g}^\circ\text{C}" />)</span>,
+                steps: [
+                    { latex: String.raw`m = 500\text{g}, \quad \Delta T = 90 - 20 = 70^\circ\text{C}`, text: "Análisis", speech: "El cobre es excelente conductor. Analicemos su salto térmico de 70 grados.", graphicProps: { mode: 'heating', elements: [{ name: 'Cu', temp: 20, color: '#b45309' }], flame: false } },
+                    { latex: String.raw`Q = Ce_{Cu} \cdot m \cdot \Delta T`, text: "Ecuación", speech: "Procedemos con la misma ecuación de calorimetría.", graphicProps: { mode: 'heating', elements: [{ name: 'Cu', temp: 20, color: '#b45309' }], flame: true } },
+                    { latex: String.raw`Q = 0.1 \cdot 500 \cdot 70`, text: "Operación", speech: "0.1 por 500 nos da 50. Luego lo multiplicamos por 70.", graphicProps: { mode: 'heating', elements: [{ name: 'Cu', temp: 90, color: '#ea580c' }], flame: true } },
+                    { latex: String.raw`Q = \mathbf{3500 \text{ cal}}`, text: "Resultado", speech: "¡Exacto! El bloque de cobre absorbe 3500 calorías.", graphicProps: { mode: 'heating', elements: [{ name: 'Cu', temp: 90, color: '#ea580c' }], flame: false } }
+                ]
+            },
+            {
+                id: 4, title: "Ejercicio 4", subtitle: "Masa del Plomo",
+                badge: "bg-yellow-600", grad: "from-yellow-700/40 to-lime-600/40 border-yellow-500",
+                enunciado: () => <span>Calcula la masa (en g) de un bloque de plomo, si al ganar 200 cal aumentó su temperatura de <MathDisplay inline latex="60^\circ\text{C}" /> a <MathDisplay inline latex="100^\circ\text{C}" />. (<MathDisplay inline latex="Ce_{Pb} = 0.25" />)</span>,
+                steps: [
+                    { latex: String.raw`Q = 200\text{ cal}, \quad \Delta T = 40^\circ\text{C}`, text: "Datos Inversos", speech: "Esta vez nos dan el calor suministrado y nos piden descubrir la masa del objeto.", graphicProps: { mode: 'heating', elements: [{ name: 'Pb', temp: 60, color: '#475569' }], flame: true } },
+                    { latex: String.raw`Q = Ce \cdot m \cdot \Delta T`, text: "Ecuación Base", speech: "La ecuación es la misma, solo que nuestra incógnita ahora es la letra 'm'." },
+                    { latex: String.raw`200 = 0.25 \cdot m \cdot 40`, text: "Reemplazando", speech: "Sustituimos el calor (200), el Ce (0.25) y la variación de temperatura (40).", graphicProps: { mode: 'heating', elements: [{ name: 'Pb', temp: 100, color: '#94a3b8' }], flame: true } },
+                    { latex: String.raw`200 = 10 \cdot m \implies m = \mathbf{20 \text{ g}}`, text: "Despejando", speech: "0.25 por 40 es 10. Al dividir 200 entre 10, descubrimos que la masa es 20 gramos.", graphicProps: { mode: 'heating', elements: [{ name: 'Pb', temp: 100, color: '#94a3b8' }], flame: false } }
+                ]
+            },
+            {
+                id: 5, title: "Ejercicio 5", subtitle: "Temperatura de Plata",
+                badge: "bg-lime-600", grad: "from-lime-700/40 to-green-600/40 border-lime-500",
+                enunciado: () => <span>Un bloque de plata de 0.5 kg a <MathDisplay inline latex="17^\circ\text{C}" /> absorbe 600 cal. ¿Cuál será su temperatura final en °C? (<MathDisplay inline latex="Ce_{Ag} = 0.06 \text{ cal/g}^\circ\text{C}" />)</span>,
+                steps: [
+                    { latex: String.raw`m = 0.5\text{ kg} = 500\text{ g}`, text: "Conversión de Masa", speech: "¡Ojo! La fórmula usa gramos, así que convertimos los 0.5 kg a 500 g.", graphicProps: { mode: 'heating', elements: [{ name: 'Ag', temp: 17, color: '#e2e8f0' }], flame: false } },
+                    { latex: String.raw`Q = Ce \cdot m \cdot (T_f - T_i)`, text: "Expansión de ΔT", speech: "Como buscamos la temperatura final, escribimos ΔT como (T final - T inicial).", graphicProps: { mode: 'heating', elements: [{ name: 'Ag', temp: 17, color: '#e2e8f0' }], flame: true } },
+                    { latex: String.raw`600 = 0.06 \cdot 500 \cdot (T_f - 17)`, text: "Sustituyendo", speech: "Colocamos los 600 cal de calor, el Ce=0.06 y la T inicial de 17°C." },
+                    { latex: String.raw`600 = 30 \cdot (T_f - 17) \implies 20 = T_f - 17`, text: "Simplificando", speech: "Multiplicar 0.06 por 500 da 30. Pasamos el 30 a dividir y nos queda 20." },
+                    { latex: String.raw`T_f = \mathbf{37^\circ\text{C}}`, text: "Resultado", speech: "Sumando 17 al 20, la temperatura final de la plata es 37°C.", graphicProps: { mode: 'heating', elements: [{ name: 'Ag', temp: 37, color: '#fca5a5' }], flame: false } }
+                ]
+            },
+            {
+                id: 6, title: "Ejercicio 6", subtitle: "Calentando Oro",
+                badge: "bg-green-600", grad: "from-green-700/40 to-emerald-600/40 border-green-500",
+                enunciado: () => <span>Un bloque de oro de 2 kg a <MathDisplay inline latex="8^\circ\text{C}" /> absorbe 240 cal. ¿Cuál será su temperatura final en °C? (<MathDisplay inline latex="Ce_{Au} = 0.03 \text{ cal/g}^\circ\text{C}" />)</span>,
+                steps: [
+                    { latex: String.raw`m = 2\text{ kg} = 2000\text{ g}`, text: "Masa a Gramos", speech: "Nuevamente, pasamos los kilogramos a gramos. 2 kg son 2000 g.", graphicProps: { mode: 'heating', elements: [{ name: 'Au', temp: 8, color: '#fde047' }], flame: false } },
+                    { latex: String.raw`240 = 0.03 \cdot 2000 \cdot (T_f - 8)`, text: "Armando Ecuación", speech: "Aplicamos la ecuación con los datos del oro. Su Ce es muy bajito (0.03).", graphicProps: { mode: 'heating', elements: [{ name: 'Au', temp: 8, color: '#fde047' }], flame: true } },
+                    { latex: String.raw`240 = 60 \cdot (T_f - 8)`, text: "Reducción", speech: "0.03 multiplicado por 2000 da exactamente 60. Pasamos el 60 a dividir." },
+                    { latex: String.raw`4 = T_f - 8 \implies T_f = \mathbf{12^\circ\text{C}}`, text: "Despeje Final", speech: "240 / 60 es 4. Al sumar el 8, resulta que la temperatura final es apenas 12°C.", graphicProps: { mode: 'heating', elements: [{ name: 'Au', temp: 12, color: '#fcd34d' }], flame: false } }
+                ]
+            },
+            {
+                id: 7, title: "Ejercicio 7", subtitle: "Elevación Térmica",
+                badge: "bg-emerald-600", grad: "from-emerald-700/40 to-teal-600/40 border-emerald-500",
+                enunciado: () => <span>A un cuerpo de 100g y <MathDisplay inline latex="Ce = 0.5 \text{ cal/g}^\circ\text{C}" /> se le entrega 400 cal. ¿En cuánto elevará su temperatura en °C?</span>,
+                steps: [
+                    { latex: String.raw`Q = 400, \quad m = 100, \quad Ce = 0.5`, text: "Identificando Variables", speech: "Nos piden hallar 'en cuánto elevará', es decir, nos están pidiendo calcular directamente la variación ΔT.", graphicProps: { mode: 'heating', elements: [{ name: 'Obj', temp: 20, color: '#cbd5e1' }], flame: false } },
+                    { latex: String.raw`400 = 0.5 \cdot 100 \cdot \Delta T`, text: "Sustitución", speech: "Reemplazamos en la fórmula general.", graphicProps: { mode: 'heating', elements: [{ name: 'Obj', temp: 20, color: '#cbd5e1' }], flame: true } },
+                    { latex: String.raw`400 = 50 \cdot \Delta T`, text: "Operando Masa", speech: "La mitad (0.5) de 100 es 50." },
+                    { latex: String.raw`\Delta T = \frac{400}{50} = \mathbf{8^\circ\text{C}}`, text: "Resultado", speech: "Al dividir, descubrimos que la temperatura del cuerpo se elevará exactamente 8 grados centígrados.", graphicProps: { mode: 'heating', elements: [{ name: 'Obj', temp: 28, color: '#f87171' }], flame: false } }
+                ]
+            },
+            {
+                id: 8, title: "Ejercicio 8", subtitle: "Equilibrio: Masa Al",
+                badge: "bg-teal-600", grad: "from-teal-700/40 to-cyan-600/40 border-teal-500",
+                enunciado: () => <span>Un bloque de Aluminio a <MathDisplay inline latex="120^\circ\text{C}" /> se sumerge en 900g de agua a <MathDisplay inline latex="10^\circ\text{C}" />. Si la temp. de equilibrio es <MathDisplay inline latex="20^\circ\text{C}" />, halla la masa del bloque. (<MathDisplay inline latex="Ce_{Al} = 0.9" />)</span>,
+                steps: [
+                    { latex: String.raw`Q_{\text{ganado}} + Q_{\text{perdido}} = 0`, text: "Principio de Mezclas", speech: "¡Empezamos con Equilibrio Térmico! El agua fría ganará calor, mientras que el bloque caliente lo perderá.", graphicProps: { mode: 'mixing', elements: [{ name: 'Agua', temp: 10, color: '#3b82f6' }, { name: 'Al', temp: 120, color: '#ef4444' }], eqTemp: 20 } },
+                    { latex: String.raw`Q_{\text{H2O}} = 1 \cdot 900 \cdot (20 - 10)`, text: "Calor Ganado (Agua)", speech: "El agua sube de 10°C a 20°C. Su masa es 900g y su Ce es 1. El calor ganado es 9000 cal." },
+                    { latex: String.raw`Q_{\text{Al}} = 0.9 \cdot m \cdot (20 - 120)`, text: "Calor Perdido (Al)", speech: "El bloque baja de 120°C a 20°C. La variación es negativa (-100°C)." },
+                    { latex: String.raw`9000 - 90 \cdot m = 0`, text: "Ecuación de Equilibrio", speech: "Sumamos ambos calores e igualamos a cero. El bloque transfiere el calor exactamente al agua.", graphicProps: { mode: 'mixing', elements: [{ name: 'Agua', temp: 20, color: '#60a5fa' }, { name: 'Al', temp: 20, color: '#f87171' }], eqTemp: 20 } },
+                    { latex: String.raw`90 \cdot m = 9000 \implies m = \mathbf{100 \text{ g}}`, text: "Masa del Aluminio", speech: "Despejamos 'm' y obtenemos que la masa del bloque de aluminio es de 100 gramos." }
+                ]
+            },
+            {
+                id: 9, title: "Ejercicio 9", subtitle: "Equilibrio: Corrección",
+                badge: "bg-cyan-600", grad: "from-cyan-700/40 to-blue-600/40 border-cyan-500",
+                enunciado: () => <span>Un bloque de Aluminio a <MathDisplay inline latex="80^\circ\text{C}" /> se sumerge en 180g de agua a <MathDisplay inline latex="60^\circ\text{C}" />. Si la temp. de equilibrio es <MathDisplay inline latex="70^\circ\text{C}" />, halla la masa del bloque. (<MathDisplay inline latex="Ce_{Al} = 0.9" />)</span>,
+                steps: [
+                    { latex: String.raw`T_{eq} = 70^\circ\text{C} \quad (\text{entre } 60^\circ \text{ y } 80^\circ)`, text: "Corrección Lógica", speech: "Nota: Hemos corregido la T de equilibrio a 70°C (el original de 20°C era un error de tipeo, ya que debe estar entre 60 y 80).", graphicProps: { mode: 'mixing', elements: [{ name: 'Agua', temp: 60, color: '#60a5fa' }, { name: 'Al', temp: 80, color: '#ef4444' }], eqTemp: 70 } },
+                    { latex: String.raw`Q_{\text{ganado H2O}} = 180 \cdot 1 \cdot (70 - 60)`, text: "Calor del Agua", speech: "El agua sube de 60°C a 70°C. Su calor ganado es 180 * 10 = 1800 calorías." },
+                    { latex: String.raw`Q_{\text{perdido Al}} = m \cdot 0.9 \cdot (70 - 80)`, text: "Calor del Aluminio", speech: "El aluminio baja de 80°C a 70°C. Su calor es m * 0.9 * (-10) = -9m." },
+                    { latex: String.raw`1800 - 9m = 0 \implies 9m = 1800`, text: "Igualando a Cero", speech: "Aplicamos la ley cero de la termodinámica.", graphicProps: { mode: 'mixing', elements: [{ name: 'Agua', temp: 70, color: '#93c5fd' }, { name: 'Al', temp: 70, color: '#fca5a5' }], eqTemp: 70 } },
+                    { latex: String.raw`m = \mathbf{200 \text{ g}}`, text: "Resultado", speech: "¡Perfecto! Resolviendo la ecuación, el bloque debe tener 200 gramos." }
+                ]
+            },
+            {
+                id: 10, title: "Ejercicio 10", subtitle: "Identificando Metal",
+                badge: "bg-blue-600", grad: "from-blue-700/40 to-indigo-600/40 border-blue-500",
+                enunciado: () => <span>Se mezcla 1.5 kg de agua a <MathDisplay inline latex="20^\circ\text{C}" /> con 3.0 kg de un metal a <MathDisplay inline latex="130^\circ\text{C}" />. Si el equilibrio es a <MathDisplay inline latex="40^\circ\text{C}" />, ¿cuál es el calor específico del metal?</span>,
+                steps: [
+                    { latex: String.raw`Q_{\text{H2O}} + Q_{\text{metal}} = 0`, text: "Sistema Aislado", speech: "Convertimos las masas a gramos: el agua es 1500g y el metal 3000g.", graphicProps: { mode: 'mixing', elements: [{ name: 'Agua', temp: 20, color: '#3b82f6' }, { name: 'Metal', temp: 130, color: '#f97316' }], eqTemp: 40 } },
+                    { latex: String.raw`1500 \cdot 1 \cdot (40 - 20) + 3000 \cdot Ce \cdot (40 - 130) = 0`, text: "Planteando Ecuación", speech: "Sustituimos todos los datos. El agua sube de 20 a 40, y el metal cae de 130 a 40." },
+                    { latex: String.raw`1500(20) + 3000 \cdot Ce \cdot (-90) = 0`, text: "Resolviendo Paréntesis", speech: "Calculamos las variaciones de temperatura. El metal sufrió un gran enfriamiento de -90°C.", graphicProps: { mode: 'mixing', elements: [{ name: 'Agua', temp: 40, color: '#60a5fa' }, { name: 'Metal', temp: 40, color: '#fb923c' }], eqTemp: 40 } },
+                    { latex: String.raw`30000 = 270000 \cdot Ce`, text: "Aislado la Incógnita", speech: "Movemos el término negativo al otro lado para despejar el Calor Específico." },
+                    { latex: String.raw`Ce = \frac{30000}{270000} \approx \mathbf{0.11 \text{ cal/g}^\circ\text{C}}`, text: "Ce Descubierto", speech: "Dividimos y obtenemos aprox 0.11. ¡Probablemente sea un bloque de Fierro!" }
+                ]
+            },
+            {
+                id: 11, title: "Ejercicio 11", subtitle: "Mezcla de Aguas",
+                badge: "bg-indigo-600", grad: "from-indigo-700/40 to-violet-600/40 border-indigo-500",
+                enunciado: () => <span>¿Cuántos kg de agua a <MathDisplay inline latex="5^\circ\text{C}" /> deben mezclarse con 20 kg de agua a <MathDisplay inline latex="75^\circ\text{C}" /> para obtener agua a <MathDisplay inline latex="30^\circ\text{C}" />?</span>,
+                steps: [
+                    { latex: String.raw`Q_{\text{fría}} = -Q_{\text{caliente}}`, text: "Igualdad Directa", speech: "Otra forma de ver el equilibrio es decir que el calor ganado por el agua fría es igual al perdido por la caliente (en valor positivo).", graphicProps: { mode: 'mixing', elements: [{ name: 'A. Fría', temp: 5, color: '#0ea5e9' }, { name: 'A. Cal', temp: 75, color: '#ef4444' }], eqTemp: 30 } },
+                    { latex: String.raw`m \cdot 1 \cdot (30 - 5) = 20 \cdot 1 \cdot (75 - 30)`, text: "Armando Tramos", speech: "Como ambos son agua, el Ce vale 1 en ambos lados. Podemos usar kg directo si todo está en kg." },
+                    { latex: String.raw`m \cdot (25) = 20 \cdot (45)`, text: "Diferencias Térmicas", speech: "El agua fría se calienta 25 grados; el agua caliente se enfría 45 grados." },
+                    { latex: String.raw`25m = 900 \implies m = \mathbf{36 \text{ kg}}`, text: "Masa Resultante", speech: "Despejamos 'm' dividiendo 900 entre 25. ¡Necesitamos 36 kg de agua fría!", graphicProps: { mode: 'mixing', elements: [{ name: 'Mezcla', temp: 30, color: '#8b5cf6' }, { name: 'Mezcla', temp: 30, color: '#8b5cf6' }], eqTemp: 30 } }
+                ]
+            },
+            {
+                id: 12, title: "Ejercicio 12", subtitle: "Temperatura Final",
+                badge: "bg-violet-600", grad: "from-violet-700/40 to-purple-600/40 border-violet-500",
+                enunciado: () => <span>Se mezclan 100g de agua a <MathDisplay inline latex="10^\circ\text{C}" /> con 300g de agua a <MathDisplay inline latex="90^\circ\text{C}" />. ¿A qué temperatura terminará la mezcla?</span>,
+                steps: [
+                    { latex: String.raw`100(1)(T_e - 10) + 300(1)(T_e - 90) = 0`, text: "Buscando Te", speech: "Aquí nuestra incógnita es la temperatura de equilibrio Te.", graphicProps: { mode: 'mixing', elements: [{ name: 'A. 10°', temp: 10, color: '#3b82f6' }, { name: 'A. 90°', temp: 90, color: '#ef4444' }] } },
+                    { latex: String.raw`100(T_e - 10) = 300(90 - T_e)`, text: "Separando", speech: "Igualamos el calor ganado con el perdido (cambiando los signos del perdido para mayor facilidad)." },
+                    { latex: String.raw`1(T_e - 10) = 3(90 - T_e)`, text: "Simplificando Masas", speech: "Simplificamos los ceros de 100 y 300 para que sea más fácil operar." },
+                    { latex: String.raw`T_e - 10 = 270 - 3T_e`, text: "Distribuyendo", speech: "Multiplicamos el 3 en el paréntesis derecho." },
+                    { latex: String.raw`4T_e = 280 \implies T_e = \mathbf{70^\circ\text{C}}`, text: "Equilibrio Logrado", speech: "Agrupamos las Te en un lado y los números en otro. ¡La mezcla final queda a 70°C!", graphicProps: { mode: 'mixing', elements: [{ name: 'Mezcla', temp: 70, color: '#d946ef' }, { name: 'Mezcla', temp: 70, color: '#d946ef' }], eqTemp: 70 } }
+                ]
+            },
+            {
+                id: 13, title: "Ejercicio 13", subtitle: "Mezcla Sin Pérdidas",
+                badge: "bg-purple-600", grad: "from-purple-700/40 to-fuchsia-600/40 border-purple-500",
+                enunciado: () => <span>En un recipiente de capacidad calorífica despreciable, se vierten 100g de agua a <MathDisplay inline latex="20^\circ\text{C}" /> y 500g de agua a <MathDisplay inline latex="80^\circ\text{C}" />. Halla la temp. de equilibrio.</span>,
+                steps: [
+                    { latex: String.raw`100(T_e - 20) = 500(80 - T_e)`, text: "Planteamiento", speech: "Muy similar al caso anterior. El recipiente no absorbe calor, así que solo interactúan las aguas.", graphicProps: { mode: 'mixing', elements: [{ name: 'A. 20°', temp: 20, color: '#3b82f6' }, { name: 'A. 80°', temp: 80, color: '#ef4444' }] } },
+                    { latex: String.raw`(T_e - 20) = 5(80 - T_e)`, text: "Simplificación Rápida", speech: "Dividimos entre 100 a ambos lados para simplificar las masas." },
+                    { latex: String.raw`T_e - 20 = 400 - 5T_e`, text: "Álgebra", speech: "Distribuimos el 5 en el lado derecho." },
+                    { latex: String.raw`6T_e = 420 \implies T_e = \mathbf{70^\circ\text{C}}`, text: "Temperatura Final", speech: "Sumamos 5Te + Te, y 400 + 20. El resultado vuelve a ser 70°C.", graphicProps: { mode: 'mixing', elements: [{ name: 'Mezcla', temp: 70, color: '#c026d3' }, { name: 'Mezcla', temp: 70, color: '#c026d3' }], eqTemp: 70 } }
+                ]
+            },
+            {
+                id: 14, title: "Ejercicio 14", subtitle: "Calorímetro Completo",
+                badge: "bg-fuchsia-600", grad: "from-fuchsia-700/40 to-pink-600/40 border-fuchsia-500",
+                enunciado: () => <span>Un recipiente de Al (<MathDisplay inline latex="0.5\text{kg}, Ce=0.22" />) con 110g de agua a <MathDisplay inline latex="20^\circ\text{C}" /> recibe un bloque de Fe de 200g (<MathDisplay inline latex="Ce=0.11" />) a <MathDisplay inline latex="75^\circ\text{C}" />. Calcula la temp. final.</span>,
+                steps: [
+                    { latex: String.raw`C_{\text{sistema}} = 500(0.22) + 110(1) = 220`, text: "Sistema Frío (Recipiente + Agua)", speech: "¡Atención! Aquí el recipiente de aluminio (500g) también participa. Calculamos la 'Capacidad Calorífica' combinada del recipiente y el agua.", graphicProps: { mode: 'mixing', elements: [{ name: 'Sis. 20°', temp: 20, color: '#3b82f6' }, { name: 'Fe 75°', temp: 75, color: '#ef4444' }] } },
+                    { latex: String.raw`Q_{\text{ganado}} = 220 \cdot (T_e - 20)`, text: "Calor Ganado Total", speech: "Este sistema conjunto ganará calor para subir desde los 20°C hasta Te." },
+                    { latex: String.raw`Q_{\text{perdido}} = 200(0.11)(75 - T_e) = 22(75 - T_e)`, text: "Calor Perdido (Fe)", speech: "El bloque de fierro perderá calor al entrar al recipiente." },
+                    { latex: String.raw`220(T_e - 20) = 22(75 - T_e)`, text: "Igualación", speech: "Igualamos ambas cantidades de calor transferidas." },
+                    { latex: String.raw`10(T_e - 20) = 75 - T_e \implies 11T_e = 275`, text: "Simplificando y Despejando", speech: "Podemos dividir todo entre 22. Luego acomodamos las variables Te." },
+                    { latex: String.raw`T_e = \mathbf{25^\circ\text{C}}`, text: "Equilibrio Final", speech: "¡Increíblemente exacto! Todo el sistema se estabilizará a 25°C.", graphicProps: { mode: 'mixing', elements: [{ name: 'Sistema', temp: 25, color: '#8b5cf6' }, { name: 'Fe', temp: 25, color: '#8b5cf6' }], eqTemp: 25 } }
+                ]
+            },
+            {
+                id: 15, title: "Ejercicio 15", subtitle: "Aleación de Metales",
+                badge: "bg-pink-600", grad: "from-pink-700/40 to-rose-600/40 border-pink-500",
+                enunciado: () => <span>Una aleación tiene 200g de Cu (<MathDisplay inline latex="Ce=0.094" />), 150g de Sn (<MathDisplay inline latex="Ce=0.055" />) y 80g de Al (<MathDisplay inline latex="Ce=0.212" />). Calcula su Capacidad Calorífica (C) y el calor para elevar <MathDisplay inline latex="\Delta T=50^\circ\text{C}" />.</span>,
+                steps: [
+                    { latex: String.raw`C = m_1 Ce_1 + m_2 Ce_2 + m_3 Ce_3`, text: "Fórmula de Capacidad", speech: "La capacidad calorífica (C) total de un compuesto es la suma de las capacidades de sus partes.", graphicProps: { mode: 'alloy', elements: [{ name: 'Cu', mass: '200g', color: '#b45309' }, { name: 'Sn', mass: '150g', color: '#94a3b8' }, { name: 'Al', mass: '80g', color: '#cbd5e1' }] } },
+                    { latex: String.raw`C = 200(0.094) + 150(0.055) + 80(0.212)`, text: "Reemplazando en Partes", speech: "Sustituimos la masa y el calor específico de cada uno de los 3 metales." },
+                    { latex: String.raw`C = 18.8 + 8.25 + 16.96 = \mathbf{44.01 \text{ cal/}^\circ\text{C}}`, text: "Capacidad Calculada", speech: "Sumamos las partes. Esta aleación necesita aprox. 44 calorías para elevar su temperatura en 1°C." },
+                    { latex: String.raw`Q = C \cdot \Delta T = 44.01 \cdot 50`, text: "Cálculo de Calor Total", speech: "Nos piden el calor necesario para subir la temperatura en 50°C. Multiplicamos la C por 50." },
+                    { latex: String.raw`Q = \mathbf{2200.5 \text{ cal}}`, text: "Calor Final Obtenido", speech: "¡Reto superado! Se requieren 2200.5 calorías para lograrlo.", graphicProps: { mode: 'alloy', elements: [{ name: 'Cu', mass: '200g', color: '#b45309' }, { name: 'Sn', mass: '150g', color: '#94a3b8' }, { name: 'Al', mass: '80g', color: '#cbd5e1' }] } }
+                ]
+            }
+        ];
+
+        // Animated Robot Tutor Component (Themed for Heat)
+        const RobotTutor = ({ step, maxSteps }) => {
+            const isFinal = step >= maxSteps;
+            const getArmClass = (isLeft) => `absolute top-1/2 w-2.5 h-5 bg-orange-300 border-2 border-red-900 rounded-full origin-top transition-all ${isLeft ? '-left-1.5' : '-right-1.5'} ${isFinal ? (isLeft ? 'rotate-[140deg] animate-pulse' : '-rotate-[140deg] animate-pulse') : (isLeft ? 'rotate-45' : '-rotate-45')}`;
+            
+            return (
+                <div className={`relative flex flex-col items-center drop-shadow-xl select-none animate-robotFloat`}>
+                    {/* Antena Flama */}
+                    <div className="relative z-0 flex flex-col items-center translate-y-2">
+                        <div className={`w-3.5 h-3.5 rounded-full shadow-[0_0_12px_currentColor] z-10 transition-colors ${isFinal ? 'text-green-400 bg-green-400' : 'text-yellow-400 bg-yellow-400 animate-pulse'}`}></div>
+                        <div className="w-1.5 h-3 bg-orange-200"></div>
+                    </div>
+                    {/* Casco Ignifugo */}
+                    <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-b from-red-600 to-orange-800 rounded-2xl border-[3px] border-red-950 shadow-2xl flex items-center justify-center p-1.5">
+                        <div className="w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center p-1 relative overflow-hidden border-2 border-orange-500/50">
+                            {/* Ojos Visor */}
+                            <div className="w-full flex justify-between px-2 mb-1">
+                                <div className={`w-3 h-3 rounded-sm ${isFinal ? 'bg-green-400' : 'bg-orange-400 animate-pulse'}`}></div>
+                                <div className={`w-3 h-3 rounded-sm ${isFinal ? 'bg-green-400' : 'bg-orange-400 animate-pulse'}`}></div>
+                            </div>
+                            {/* Rejilla Boca */}
+                            <div className={`w-6 h-2 rounded-sm mt-1 grid grid-cols-3 gap-0.5 ${isFinal ? 'opacity-0' : 'opacity-100'}`}>
+                                <div className="bg-orange-300"></div><div className="bg-orange-300"></div><div className="bg-orange-300"></div>
+                            </div>
+                            {isFinal && <div className="w-6 h-2.5 bg-green-400 rounded-b-full mt-1"></div>}
+                            {/* Reflejo fuego */}
+                            <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-orange-600/30 to-transparent"></div>
+                        </div>
+                    </div>
+                    {/* Brazos */}
+                    <div className={getArmClass(true)}></div>
+                    <div className={getArmClass(false)}></div>
+                </div>
+            );
+        };
+
+        // Main App
+        function App() {
+            const [view, setView] = useState('home');
+            const [exIdx, setExIdx] = useState(0);
+            const [step, setStep] = useState(0);
+            const [isMuted, setIsMuted] = useState(false);
+            const scrollContainerRef = useRef(null);
+
+            const currentExercise = EXERCISES[exIdx];
+            const maxSteps = currentExercise.steps.length - 1;
+            const stepData = currentExercise.steps[step];
+            const EnunciadoText = currentExercise.enunciado;
+
+            const handleInteraction = () => AudioController.init();
+
+            useEffect(() => {
+                if(scrollContainerRef.current) scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+            }, [step, exIdx, view]);
+
+            const startExercise = (index) => {
+                handleInteraction(); AudioController.play('pop');
+                setExIdx(index); setStep(0); setView('lab');
+            };
+
+            const nextStep = () => {
+                handleInteraction();
+                if (step < maxSteps) {
+                    setStep(step + 1);
+                    AudioController.play(step + 1 === maxSteps ? 'success' : 'pop');
+                } else if (exIdx < EXERCISES.length - 1) {
+                    setExIdx(exIdx + 1); setStep(0); AudioController.play('pop');
+                } else {
+                    setView('home'); AudioController.play('pop');
+                }
+            };
+
+            const prevStep = () => {
+                handleInteraction();
+                if (step > 0) { setStep(step - 1); AudioController.play('pop'); }
+            };
+
+            const toggleMute = () => { handleInteraction(); setIsMuted(AudioController.toggleMute()); };
+
+            if (view === 'home') {
+                return (
+                    <div className="w-screen min-h-[100dvh] bg-gradient-to-br from-[#7f1d1d] via-[#9a3412] to-[#b45309] flex flex-col items-center p-4 sm:p-6 relative font-fun overflow-y-auto scrollbar-hide">
+                        {/* Deco Calor */}
+                        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #fef3c7 2px, transparent 2.5px)', backgroundSize: '40px 40px' }}></div>
+                        
+                        <div className="w-[96%] max-w-[1400px] z-20 flex items-center justify-between mb-8 mt-2">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border-2 border-orange-300 bg-white/10 backdrop-blur text-orange-200 font-black tracking-widest uppercase shadow-md">
+                                <FlameIcon className="w-5 h-5" /> Lab Termodinámica
+                            </div>
+                            <button onClick={toggleMute} className="p-3 rounded-2xl bg-white/10 border-2 border-white/20 text-white hover:bg-white/20 transition-all shadow-md active:scale-95">
+                                {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                            </button>
+                        </div>
+
+                        <div className="relative z-10 text-center w-full max-w-6xl flex flex-col items-center">
+                            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white mb-4 drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] tracking-tighter uppercase">
+                                Física: <span className="text-orange-400 underline decoration-wavy decoration-yellow-400">Calorimetría</span>
+                            </h1>
+                            <p className="text-lg sm:text-2xl text-orange-50 mb-10 font-bold max-w-3xl leading-relaxed">
+                                Domina el intercambio de calor, el calor específico y el equilibrio térmico con estos 15 retos explicados paso a paso. 🔥🌡️
+                            </p>
+
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+                                {EXERCISES.map((ex, idx) => (
+                                    <button
+                                        key={ex.id} onClick={() => startExercise(idx)}
+                                        className="group p-4 rounded-3xl bg-gradient-to-br bg-opacity-90 backdrop-blur-sm border-[3px] border-white/30 hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(0,0,0,0.4)] transition-all flex flex-col text-left shadow-lg overflow-hidden relative active:scale-95"
+                                        style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }}
+                                    >
+                                        <div className={`absolute inset-0 opacity-80 ${ex.grad}`}></div>
+                                        <div className="relative z-10 flex flex-col h-full">
+                                            <span className={`${ex.badge} w-fit text-white text-xs font-black px-2 py-1 rounded-md mb-3 shadow`}>
+                                                RETO {ex.id}
+                                            </span>
+                                            <div className="flex-1 my-2 bg-white/95 rounded-xl p-2 shadow-inner border border-white/60 flex items-center justify-center overflow-hidden pointer-events-none math-card min-h-[4.5rem]">
+                                                <MathDisplay latex={ex.steps[0].latex} />
+                                            </div>
+                                            <div className="text-white text-sm font-bold text-center mt-1 drop-shadow-md">
+                                                {ex.subtitle}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Calculamos el gráfico actual analizando los pasos hasta el actual
+            const stepsUpToCurrent = currentExercise.steps.slice(0, step + 1);
+            let currentGraphicProps = null;
+            for (let i = stepsUpToCurrent.length - 1; i >= 0; i--) {
+                if (stepsUpToCurrent[i].graphicProps) {
+                    currentGraphicProps = stepsUpToCurrent[i].graphicProps;
+                    break;
+                }
+            }
+
+            return (
+                <div className="w-screen h-[100dvh] bg-gradient-to-b from-[#450a0a] to-[#7f1d1d] text-slate-800 flex flex-col p-2 sm:p-4 relative font-fun overflow-hidden">
+                    {/* Top NavBar */}
+                    <div className="shrink-0 z-20 w-full max-w-[1400px] mx-auto flex justify-between items-center mb-3 px-1">
+                        <button onClick={() => { AudioController.play('pop'); setView('home'); }} className="flex items-center px-4 py-2 rounded-2xl bg-white/10 border-[3px] border-white/20 text-white font-bold hover:bg-white/20 transition-all active:scale-95">
+                            <Home className="w-5 h-5 sm:mr-2" /> <span className="hidden sm:inline">Ejercicios</span>
+                        </button>
+                        
+                        <div className="flex items-center gap-1.5 bg-black/40 p-1.5 rounded-2xl border-2 border-white/10 overflow-x-auto scrollbar-hide max-w-[50vw] shadow-inner">
+                            {EXERCISES.map((ex, i) => (
+                                <button key={ex.id} onClick={() => startExercise(i)}
+                                    className={`shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-xl font-black text-sm transition-all ${exIdx === i ? 'bg-orange-400 text-slate-900 scale-110 shadow-[0_0_12px_rgba(251,146,60,0.6)]' : 'text-white hover:bg-white/20'}`}>
+                                    {ex.id}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button onClick={toggleMute} className="p-2 rounded-2xl bg-white/10 border-[3px] border-white/20 text-white hover:bg-white/20 transition-all active:scale-95">
+                            {isMuted ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        </button>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="flex-1 z-10 w-full max-w-[1400px] mx-auto bg-white rounded-[2rem] border-[6px] border-orange-100 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden relative">
+                        
+                        {/* Enunciado */}
+                        <div className="shrink-0 bg-slate-900 border-b-[4px] border-orange-500 px-4 py-3 sm:py-4 flex flex-col relative z-20 shadow-md">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="bg-orange-500 text-slate-900 font-black text-xs px-2 py-1 rounded shadow-sm tracking-widest uppercase">{currentExercise.title}</span>
+                                <span className="text-orange-100 font-bold text-xs bg-white/10 px-2 py-1 rounded border border-white/10">{currentExercise.subtitle}</span>
+                            </div>
+                            <div className="text-white font-bold text-lg sm:text-xl text-center leading-snug math-enunciado px-2">
+                                <EnunciadoText />
+                            </div>
+                        </div>
+
+                        {/* Split Section: Graphic Left, Steps Right */}
+                        <div className="flex-1 flex flex-col sm:flex-row relative bg-stone-50 overflow-hidden">
+                            
+                            {/* Panel Izquierdo: Gráfico Dinámico Fijo */}
+                            <div className="w-full sm:w-1/2 md:w-5/12 lg:w-1/3 p-4 sm:p-6 border-b-[4px] sm:border-b-0 sm:border-r-[4px] border-slate-200 flex flex-col items-center justify-center bg-white/40 relative">
+                                <div className="absolute inset-0 opacity-[0.02] bg-[radial-gradient(#b45309_2px,transparent_2px)] [background-size:16px_16px]"></div>
+                                
+                                {/* Contenedor del Gráfico que reacciona a los pasos */}
+                                <div className="relative z-10 w-full animate-jellyPop drop-shadow-xl" key={`graphic-${exIdx}-${step}`}>
+                                    {currentGraphicProps && <CalorimetryGraphic {...currentGraphicProps} />}
+                                </div>
+                                
+                                {/* Título de la acción actual */}
+                                <div key={`badge-${exIdx}-${step}`} className="z-20 mt-6 animate-jellyPop text-center">
+                                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-black text-sm sm:text-base shadow-lg border-2 ${step === maxSteps ? 'bg-green-400 text-slate-900 border-green-200' : 'bg-gradient-to-r from-orange-600 to-red-600 text-white border-orange-400'}`}>
+                                        <Sparkles className="w-5 h-5" /> {stepData.text}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Panel Derecho: Cálculos Matemáticos */}
+                            <div className="w-full sm:w-1/2 md:w-7/12 lg:w-2/3 flex flex-col p-4 relative overflow-hidden bg-stone-50">
+                                <div ref={scrollContainerRef} className="w-full flex-1 flex flex-col items-center z-10 space-y-4 overflow-y-auto scrollbar-hide pb-20">
+                                    {currentExercise.steps.slice(0, step + 1).map((s, idx) => (
+                                        <div key={`${exIdx}-${idx}`} className={`w-full max-w-2xl flex flex-col items-center transition-all duration-300 ${idx === step ? 'opacity-100 scale-100 animate-slideInRight' : 'opacity-60 scale-95'}`}>
+                                            <div className={`px-4 py-3 sm:py-4 w-fit max-w-full text-center rounded-[1.5rem] overflow-x-auto scrollbar-hide flex items-center justify-center min-h-[4rem] ${idx === step ? (step === maxSteps ? 'bg-green-200 border-4 border-green-400 math-current shadow-[0_10px_20px_rgba(74,222,128,0.4)]' : 'bg-white border-4 border-orange-400 math-current shadow-[0_10px_20px_rgba(249,115,22,0.2)]') : 'bg-slate-200 border-2 border-slate-300 math-history'}`}>
+                                                <MathDisplay latex={s.latex} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                        </div>
+
+                        {/* Área del Robot Tutor */}
+                        <div className="shrink-0 bg-white w-full px-4 py-3 sm:px-6 flex items-center gap-4 sm:gap-6 border-t-[4px] border-slate-200 z-30 relative shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
+                            <div className="shrink-0 absolute -top-10 sm:relative sm:top-0 drop-shadow-xl">
+                                <RobotTutor step={step} maxSteps={maxSteps} />
+                            </div>
+                            <div className="flex-1 text-sm sm:text-base font-bold text-slate-700 leading-snug bg-orange-50 p-3 sm:p-4 rounded-xl border-2 border-orange-100 shadow-sm ml-[4rem] sm:ml-0 min-h-[4rem] flex items-center">
+                                <div key={`speech-${exIdx}-${step}`} className="animate-slideInRight">{stepData.speech}</div>
+                            </div>
+                        </div>
+
+                        {/* Botonera de Navegación */}
+                        <div className="shrink-0 bg-slate-100 p-2 sm:p-3 w-full border-t-[4px] border-white z-30">
+                            <div className="flex justify-center w-full max-w-3xl mx-auto gap-2 h-10 sm:h-12">
+                                <button onClick={prevStep} disabled={step === 0} className="flex-[1] bg-slate-300 text-slate-600 rounded-l-xl font-black text-sm sm:text-base flex items-center justify-center gap-1 active:translate-y-[2px] disabled:opacity-40 hover:bg-slate-400 hover:text-white transition-all shadow-sm">
+                                    <ChevronLeft className="w-5 h-5 stroke-[3px]" /> <span className="hidden sm:inline">Atrás</span>
+                                </button>
+                                <div className="bg-slate-800 text-white font-black px-4 flex items-center justify-center text-sm sm:text-base shadow-inner min-w-[5rem] border-b-[4px] border-slate-900">
+                                    {step + 1} / {maxSteps + 1}
+                                </div>
+                                <button onClick={nextStep} className={`flex-[2] text-white rounded-r-xl font-black text-sm sm:text-lg flex items-center justify-center gap-2 active:translate-y-[2px] active:border-b-0 transition-all shadow-sm border-b-[4px] ${step === maxSteps ? 'bg-green-500 hover:bg-green-600 border-green-700 animate-pulse' : 'bg-orange-500 hover:bg-orange-600 border-orange-700'}`}>
+                                    <span>{step < maxSteps ? 'Siguiente Paso' : (exIdx < EXERCISES.length - 1 ? 'Siguiente Reto' : 'Volver al Inicio')}</span>
+                                    <ChevronRight className="w-5 h-5 stroke-[3px]" />
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
